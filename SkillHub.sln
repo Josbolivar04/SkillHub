@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # 
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillHub", "SkillHub\SkillHub.csproj", "{01E8DCA0-B575-43B4-BDDD-D49734A36EBC}"
@@ -24,6 +24,14 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{2CF1943A-39B6-42B2-86F2-BE43AE0F2D94}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SkillHub.Domain.UnitTests", "tests\SkillHub.Domain.UnitTests\SkillHub.Domain.UnitTests.csproj", "{1ED3326E-A791-4AA5-A603-268EFC9308B7}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{A9F6D172-35B2-4E90-B8A1-420E44615E20}"
+	ProjectSection(SolutionItems) = preProject
+		.gitignore = .gitignore
+		global.json = global.json
+		README.md = README.md
+		SkillHub_Database_Export.sql = SkillHub_Database_Export.sql
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
