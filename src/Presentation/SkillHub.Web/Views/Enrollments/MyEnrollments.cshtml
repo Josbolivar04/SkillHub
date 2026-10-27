@@ -1,0 +1,160 @@
+@model IEnumerable<EnrollmentDto>
+@{
+    ViewData["Title"] = "Mis Inscripciones";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2 fw-bold text-dark mb-1">
+            <i class="bi bi-bookmark-check text-success me-2"></i>Mis Inscripciones
+        </h1>
+        <p class="text-muted mb-0">Consulta tus talleres inscritos, descarga tus constancias en PDF o gestiona cancelaciones</p>
+    </div>
+    <div>
+        <a asp-controller="Workshops" asp-action="Index" class="btn btn-outline-primary rounded-pill px-4">
+            <i class="bi bi-plus-circle me-1"></i> Explorar Más Talleres
+        </a>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card card-custom p-5 text-center my-4">
+        <div class="d-inline-flex p-3 rounded-circle bg-light text-muted mb-3 mx-auto">
+            <i class="bi bi-inbox fs-1"></i>
+        </div>
+        <h4 class="fw-bold text-secondary">Aún no tienes inscripciones registradas</h4>
+        <p class="text-muted mb-4">Inscríbete en los talleres prácticos disponibles para comenzar a desarrollar nuevas habilidades.</p>
+        <div>
+            <a asp-controller="Workshops" asp-action="Index" class="btn btn-primary rounded-pill px-4">
+                Ver Talleres Disponibles
+            </a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card card-custom border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-secondary small text-uppercase fw-semibold">
+                    <tr>
+                        <th class="ps-4 py-3">Taller</th>
+                        <th class="py-3">Fecha y Horario</th>
+                        <th class="py-3">Fecha de Inscripción</th>
+                        <th class="py-3 text-center">Estado</th>
+                        <th class="pe-4 py-3 text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y">
+                    @foreach (var enrollment in Model)
+                    {
+                        var isActive = enrollment.Status == "Active";
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="d-flex flex-column">
+                                    <span class="fw-bold text-dark fs-6">@enrollment.WorkshopTitle</span>
+                                    <span class="text-muted small">
+                                        <i class="bi bi-tag me-1"></i> @enrollment.WorkshopCode
+                                    </span>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <div class="small">
+                                    <div class="fw-semibold text-dark">
+                                        <i class="bi bi-calendar3 me-1 text-primary"></i>
+                                        @enrollment.WorkshopStartDateTime.ToString("dd MMM yyyy")
+                                    </div>
+                                    <div class="text-muted">
+                                        @enrollment.WorkshopStartDateTime.ToString("hh:mm tt") - @enrollment.WorkshopEndDateTime.ToString("hh:mm tt")
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="py-3">
+                                <div class="small text-muted">
+                                    @enrollment.EnrolledAt.ToString("dd/MM/yyyy hh:mm tt")
+                                </div>
+                            </td>
+                            <td class="py-3 text-center">
+                                @if (isActive)
+                                {
+                                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fw-semibold">
+                                        <i class="bi bi-check-circle-fill me-1"></i> Activa
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 px-3 py-2 rounded-pill fw-semibold">
+                                        <i class="bi bi-x-circle-fill me-1"></i> Cancelada
+                                    </span>
+                                    @if (enrollment.CancelledAt.HasValue)
+                                    {
+                                        <div class="text-muted" style="font-size: 0.75rem;">
+                                            @enrollment.CancelledAt.Value.ToString("dd/MM/yyyy")
+                                        </div>
+                                    }
+                                }
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                <div class="d-inline-flex gap-2">
+                                    @if (isActive)
+                                    {
+                                        <a asp-action="Certificate" asp-route-id="@enrollment.Id" class="btn btn-outline-primary btn-sm rounded-3" title="Descargar Constancia en PDF" target="_blank">
+                                            <i class="bi bi-file-earmark-pdf-fill me-1"></i> Constancia
+                                        </a>
+
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-3" data-bs-toggle="modal" data-bs-target="#cancelModal-@enrollment.Id">
+                                            <i class="bi bi-x-lg me-1"></i> Cancelar
+                                        </button>
+
+                                        <!-- Cancel Confirmation Modal -->
+                                        <div class="modal fade" id="cancelModal-@enrollment.Id" tabindex="-1" aria-labelledby="modalLabel-@enrollment.Id" aria-hidden="true">
+                                            <div class="modal-dialog modal-dialog-centered">
+                                                <div class="modal-content border-0 shadow text-start">
+                                                    <div class="modal-header border-0 pb-0">
+                                                        <h5 class="modal-title fw-bold text-dark" id="modalLabel-@enrollment.Id">
+                                                            Cancelar Inscripción
+                                                        </h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body py-3">
+                                                        <p class="text-muted mb-2">
+                                                            ¿Estás seguro de que deseas cancelar tu inscripción al taller:
+                                                        </p>
+                                                        <div class="p-3 bg-light rounded-3 mb-3">
+                                                            <div class="fw-bold text-dark">@enrollment.WorkshopTitle</div>
+                                                            <small class="text-muted">@enrollment.WorkshopCode • Inicio: @enrollment.WorkshopStartDateTime.ToString("dd/MM/yyyy hh:mm tt")</small>
+                                                        </div>
+                                                        <div class="alert alert-warning small rounded-3 mb-0">
+                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                            <strong>Recordatorio de política:</strong> Las cancelaciones por parte del participante deben realizarse con al menos <strong>24 horas</strong> de anticipación al inicio del taller.
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer border-0 pt-0">
+                                                        <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">
+                                                            Volver
+                                                        </button>
+                                                        <form asp-action="Cancel" asp-route-id="@enrollment.Id" method="post">
+                                                            @Html.AntiForgeryToken()
+                                                            <button type="submit" class="btn btn-danger rounded-pill px-4">
+                                                                Confirmar Cancelación
+                                                            </button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small fst-italic">Sin acciones</span>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

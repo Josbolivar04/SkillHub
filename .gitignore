@@ -1,0 +1,26 @@
+## .NET & Visual Studio / Rider ignores
+bin/
+obj/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+.vs/
+.idea/
+riderModule.iml
+/_ReSharper.Caches/
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+[Bb]uild/
+bld/
+[Bb]in/
+[Oo]bj/
+
+# Temporary / Scratch files
+*.log
+scratch/
+export_database.ps1
