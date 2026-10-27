@@ -4,7 +4,7 @@ SkillHub is a enterprise-grade web application and RESTful API designed for mana
 
 ---
 
-## 🏛️ Architecture Overview
+## Architecture Overview
 
 The solution is divided into distinct, decoupled layers according to the Clean Architecture paradigm:
 
@@ -38,7 +38,7 @@ graph TD
 
 ---
 
-## 🚀 Technology Stack
+## Technology Stack
 
 - **Framework**: .NET 8 (C# 12)
 - **Database & ORM**: Microsoft SQL Server & Entity Framework Core 8
@@ -50,7 +50,7 @@ graph TD
 
 ---
 
-## 📋 Business Rules & Domain Invariants
+## Business Rules & Domain Invariants
 
 SkillHub guarantees high data integrity through strict business rule validation:
 
@@ -74,7 +74,7 @@ SkillHub guarantees high data integrity through strict business rule validation:
 
 ---
 
-## 🛠️ Getting Started & Setup
+## Getting Started & Setup
 
 ### Prerequisites
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
@@ -136,7 +136,7 @@ dotnet test
 
 ---
 
-## 👥 Seeded Credentials
+## Seeded Credentials
 
 ### Instructor Accounts (Role: `Employee`)
 | Full Name | Email | Password | Specialty |
@@ -154,7 +154,7 @@ Participants from `SkillHub_Data.xlsx` are seeded with the default password:
 
 ---
 
-## 🌐 API Reference Summary
+## API Reference Summary
 
 ### Authentication (`/api/v1/auth`)
 - `POST /api/v1/auth/register` — Register a new participant account.
@@ -178,7 +178,7 @@ Participants from `SkillHub_Data.xlsx` are seeded with the default password:
 
 ---
 
-## 👨‍💻 Author Information
+## Author Information
 
 - **Name**: Joseph Bolivar
 - **Clan**: C# / .NET Clan
