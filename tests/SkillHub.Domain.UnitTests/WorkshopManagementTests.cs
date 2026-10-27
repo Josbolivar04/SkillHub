@@ -113,6 +113,68 @@ public class WorkshopManagementTests
         Assert.Equal(10, result[0].AvailableSlots);
     }
 
+    [Fact]
+    public async Task UpdateWorkshop_WhenCallerIsNotAssignedInstructor_ShouldThrowBusinessRuleViolationException()
+    {
+        var owner = Instructor.Create("Owner", "owner@correo.com", "Coding");
+        var other = Instructor.Create("Other", "other@correo.com", "Design");
+        await _instructorRepo.AddAsync(owner);
+        await _instructorRepo.AddAsync(other);
+
+        var start = DateTime.UtcNow.AddDays(2);
+        var end = start.AddHours(2);
+        var workshop = Workshop.Create("SEC-001", "Security", "Desc", owner.Id, start, end, 10);
+        await _workshopRepo.AddAsync(workshop);
+
+        var updateDto = new UpdateWorkshopDto("Updated Title", "Updated Desc", start, end, 12);
+
+        var ex = await Assert.ThrowsAsync<BusinessRuleViolationException>(() =>
+            _service.UpdateWorkshopAsync(workshop.Id, updateDto, "other@correo.com"));
+
+        Assert.Contains("Only the instructor assigned", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UpdateWorkshop_WhenCallerIsAssignedInstructor_ShouldUpdateAndSave()
+    {
+        var owner = Instructor.Create("Owner", "owner@correo.com", "Coding");
+        await _instructorRepo.AddAsync(owner);
+
+        var start = DateTime.UtcNow.AddDays(2);
+        var end = start.AddHours(2);
+        var workshop = Workshop.Create("SEC-002", "Original", "Desc", owner.Id, start, end, 10);
+        await _workshopRepo.AddAsync(workshop);
+
+        var updateDto = new UpdateWorkshopDto("New Title", "New Desc", start, end, 20);
+
+        var result = await _service.UpdateWorkshopAsync(workshop.Id, updateDto, "owner@correo.com");
+
+        Assert.Equal("New Title", result.Title);
+        Assert.Equal("New Desc", result.Description);
+        Assert.Equal(20, result.Capacity);
+        Assert.True(_uow.Saved);
+    }
+
+    [Fact]
+    public async Task GetWorkshopsByInstructor_ShouldReturnOnlyWorkshopsForThatInstructor()
+    {
+        var instr1 = Instructor.Create("Instr 1", "i1@correo.com", "Cooking");
+        var instr2 = Instructor.Create("Instr 2", "i2@correo.com", "Design");
+        await _instructorRepo.AddAsync(instr1);
+        await _instructorRepo.AddAsync(instr2);
+
+        var start = DateTime.UtcNow.AddDays(2);
+        var end = start.AddHours(2);
+        await _workshopRepo.AddAsync(Workshop.Create("W-01", "W1", "D1", instr1.Id, start, end, 10));
+        await _workshopRepo.AddAsync(Workshop.Create("W-02", "W2", "D2", instr1.Id, start.AddDays(1), end.AddDays(1), 10));
+        await _workshopRepo.AddAsync(Workshop.Create("W-03", "W3", "D3", instr2.Id, start, end, 10));
+
+        var list = await _service.GetWorkshopsByInstructorAsync("i1@correo.com");
+
+        Assert.Equal(2, list.Count);
+        Assert.All(list, w => Assert.Equal(instr1.Id, w.InstructorId));
+    }
+
     // --- In-Memory Test Doubles ---
     private class FakeWorkshopRepository : IWorkshopRepository
     {

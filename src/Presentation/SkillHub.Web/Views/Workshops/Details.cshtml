@@ -118,10 +118,32 @@
                         </button>
                     }
                 }
+                else if (User.Identity?.IsAuthenticated == true && User.IsInRole("Employee"))
+                {
+                    var currentEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+                    var isOwner = !string.IsNullOrEmpty(currentEmail)
+                        && string.Equals(currentEmail, Model.InstructorEmail, StringComparison.OrdinalIgnoreCase);
+
+                    @if (isOwner)
+                    {
+                        <a asp-controller="Instructor" asp-action="Edit" asp-route-id="@Model.Id" id="btn-details-edit" class="btn btn-primary w-100 py-2 mb-2">
+                            <i class="bi bi-pencil-square me-1"></i> Editar Taller
+                        </a>
+                        <a asp-controller="Instructor" asp-action="Attendees" asp-route-id="@Model.Id" id="btn-details-attendees" class="btn btn-outline-success w-100 py-2">
+                            <i class="bi bi-people-fill me-1"></i> Ver Inscritos (@Model.ActiveEnrollments)
+                        </a>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info small mb-0 rounded-3">
+                            <i class="bi bi-info-circle me-1"></i> Este taller está asignado a otro instructor. Gestiona los tuyos desde <a asp-controller="Instructor" asp-action="Index" class="alert-link">Mis Talleres</a>.
+                        </div>
+                    }
+                }
                 else if (User.Identity?.IsAuthenticated == true)
                 {
                     <div class="alert alert-info small mb-0 rounded-3">
-                        <i class="bi bi-info-circle me-1"></i> Tu rol de empleado te permite gestionar talleres y visualizar reportes en el sistema.
+                        <i class="bi bi-info-circle me-1"></i> Tu rol actual no permite inscribirte en talleres.
                     </div>
                 }
                 else

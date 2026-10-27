@@ -126,6 +126,19 @@
                                 </a>
                             </li>
                         }
+                        @if (User.Identity?.IsAuthenticated == true && User.IsInRole("Employee"))
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold px-3 text-dark" id="nav-my-workshops" asp-controller="Instructor" asp-action="Index">
+                                    <i class="bi bi-easel2-fill text-success me-1"></i> Mis Talleres
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold px-3 text-dark" id="nav-new-workshop" asp-controller="Instructor" asp-action="Create">
+                                    <i class="bi bi-plus-circle-fill text-primary me-1"></i> Nuevo Taller
+                                </a>
+                            </li>
+                        }
                     </ul>
                     <div class="d-flex align-items-center gap-2">
                         @if (User.Identity?.IsAuthenticated == true)

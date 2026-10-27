@@ -1,0 +1,132 @@
+@model IEnumerable<WorkshopDto>
+@{
+    ViewData["Title"] = "Mis Talleres";
+    var now = DateTime.UtcNow;
+    var upcoming = Model.Count(w => w.StartDateTime > now);
+    var totalEnrolled = Model.Sum(w => w.ActiveEnrollments);
+    var totalCapacity = Model.Sum(w => w.Capacity);
+    var occupancy = totalCapacity > 0 ? (int)Math.Round((double)totalEnrolled / totalCapacity * 100) : 0;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h2 fw-bold text-dark mb-1">
+            <i class="bi bi-easel2 text-primary me-2"></i>Mis Talleres
+        </h1>
+        <p class="text-muted mb-0">Gestiona tus talleres, edita su información y consulta los participantes inscritos</p>
+    </div>
+    <a asp-action="Create" id="btn-new-workshop" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-plus-circle me-1"></i> Nuevo Taller
+    </a>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <small class="text-muted">Talleres asignados</small>
+            <div class="fs-3 fw-bold text-dark">@Model.Count()</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <small class="text-muted">Próximos</small>
+            <div class="fs-3 fw-bold text-primary">@upcoming</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <small class="text-muted">Inscritos activos</small>
+            <div class="fs-3 fw-bold text-success">@totalEnrolled</div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card card-custom p-3 h-100">
+            <small class="text-muted">Ocupación global</small>
+            <div class="fs-3 fw-bold text-dark">@occupancy%</div>
+        </div>
+    </div>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card card-custom p-5 text-center">
+        <div class="d-inline-flex p-3 rounded-circle bg-light text-muted mb-3 mx-auto">
+            <i class="bi bi-calendar-plus fs-1"></i>
+        </div>
+        <h4 class="fw-bold text-secondary">Aún no tienes talleres asignados</h4>
+        <p class="text-muted mb-4">Crea tu primer taller para que los participantes puedan inscribirse.</p>
+        <div>
+            <a asp-action="Create" class="btn btn-primary rounded-pill px-4">Crear mi primer taller</a>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card card-custom border-0 shadow-sm overflow-hidden">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0" id="instructor-workshops-table">
+                <thead class="table-light text-secondary small text-uppercase fw-semibold">
+                    <tr>
+                        <th class="ps-4 py-3">Taller</th>
+                        <th class="py-3">Fecha y Horario</th>
+                        <th class="py-3">Ocupación</th>
+                        <th class="py-3 text-center">Estado</th>
+                        <th class="pe-4 py-3 text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var w in Model)
+                    {
+                        var isPast = w.StartDateTime <= now;
+                        var pct = w.Capacity > 0 ? (int)Math.Round((double)w.ActiveEnrollments / w.Capacity * 100) : 0;
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="fw-bold text-dark">@w.Title</div>
+                                <span class="text-muted small"><i class="bi bi-tag me-1"></i>@w.Code</span>
+                            </td>
+                            <td class="py-3 small">
+                                <div class="fw-semibold text-dark">
+                                    <i class="bi bi-calendar3 me-1 text-primary"></i>@w.StartDateTime.ToString("dd MMM yyyy")
+                                </div>
+                                <div class="text-muted">@w.StartDateTime.ToString("hh:mm tt") - @w.EndDateTime.ToString("hh:mm tt")</div>
+                            </td>
+                            <td class="py-3" style="min-width: 160px;">
+                                <div class="d-flex justify-content-between small mb-1">
+                                    <span class="text-muted">@w.ActiveEnrollments / @w.Capacity</span>
+                                    <span class="fw-semibold">@pct%</span>
+                                </div>
+                                <div class="progress" style="height: 6px;">
+                                    <div class="progress-bar @(w.AvailableSlots <= 0 ? "bg-danger" : "bg-primary")" style="width: @pct%;"></div>
+                                </div>
+                            </td>
+                            <td class="py-3 text-center">
+                                @if (isPast)
+                                {
+                                    <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">Finalizado</span>
+                                }
+                                else if (w.AvailableSlots <= 0)
+                                {
+                                    <span class="badge-full">Lleno</span>
+                                }
+                                else
+                                {
+                                    <span class="badge-slots">Abierto</span>
+                                }
+                            </td>
+                            <td class="pe-4 py-3 text-end">
+                                <div class="d-inline-flex gap-2">
+                                    <a asp-action="Attendees" asp-route-id="@w.Id" id="btn-attendees-@w.Code" class="btn btn-outline-success btn-sm rounded-3">
+                                        <i class="bi bi-people-fill me-1"></i> Inscritos
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@w.Id" id="btn-edit-@w.Code" class="btn btn-outline-primary btn-sm rounded-3">
+                                        <i class="bi bi-pencil-square me-1"></i> Editar
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}

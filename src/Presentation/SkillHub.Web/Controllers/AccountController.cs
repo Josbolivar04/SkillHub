@@ -51,32 +51,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var roles = await _userManager.GetRolesAsync(user);
-
-        var claims = new List<Claim>
-        {
-            new(ClaimTypes.NameIdentifier, user.Id),
-            new(ClaimTypes.Name, user.FullName),
-            new(ClaimTypes.Email, user.Email!),
-            new("userId", user.Id)
-        };
-
-        foreach (var role in roles)
-        {
-            claims.Add(new Claim(ClaimTypes.Role, role));
-        }
-
-        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        var authProperties = new AuthenticationProperties
-        {
-            IsPersistent = true,
-            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(4)
-        };
-
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(claimsIdentity),
-            authProperties);
+        await SignInUserAsync(user);
 
         if (!string.IsNullOrEmpty(model.ReturnUrl) && Url.IsLocalUrl(model.ReturnUrl))
         {
@@ -108,20 +83,14 @@ public class AccountController : Controller
 
         try
         {
-            var result = await _authService.RegisterAsync(new RegisterDto(model.FullName, model.Email, model.Password));
+            await _authService.RegisterAsync(new RegisterDto(model.FullName, model.Email, model.Password));
 
-            var claims = new List<Claim>
+            // Sign in with the persisted user so the cookie carries the real user Id and roles.
+            var user = await _userManager.FindByEmailAsync(model.Email.Trim().ToLowerInvariant());
+            if (user != null)
             {
-                new(ClaimTypes.NameIdentifier, model.Email),
-                new(ClaimTypes.Name, model.FullName),
-                new(ClaimTypes.Email, model.Email),
-                new(ClaimTypes.Role, Roles.Participant)
-            };
-
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity));
+                await SignInUserAsync(user);
+            }
 
             TempData["SuccessMessage"] = "Your account has been created successfully! Welcome to SkillHub.";
             return RedirectToAction("Index", "Workshops");
@@ -150,5 +119,35 @@ public class AccountController : Controller
     public IActionResult AccessDenied()
     {
         return View();
+    }
+
+    private async Task SignInUserAsync(ApplicationUser user)
+    {
+        var roles = await _userManager.GetRolesAsync(user);
+
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Name, user.FullName),
+            new(ClaimTypes.Email, user.Email!),
+            new("userId", user.Id)
+        };
+
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
+
+        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+        var authProperties = new AuthenticationProperties
+        {
+            IsPersistent = true,
+            ExpiresUtc = DateTimeOffset.UtcNow.AddHours(4)
+        };
+
+        await HttpContext.SignInAsync(
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(claimsIdentity),
+            authProperties);
     }
 }
