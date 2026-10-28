@@ -115,4 +115,22 @@ public class AuthTests
         Assert.Contains(Roles.Participant, dto.Roles);
         Assert.Equal(expiresAt, dto.ExpiresAt);
     }
+
+    [Fact]
+    public void ForgotPasswordDto_ShouldCreateValidInstance()
+    {
+        var dto = new ForgotPasswordDto("user@correo.com");
+
+        Assert.Equal("user@correo.com", dto.Email);
+    }
+
+    [Fact]
+    public void ResetPasswordDto_ShouldCreateValidInstance()
+    {
+        var dto = new ResetPasswordDto("user@correo.com", "sample-token-123", "NewSecretPass2026*");
+
+        Assert.Equal("user@correo.com", dto.Email);
+        Assert.Equal("sample-token-123", dto.Token);
+        Assert.Equal("NewSecretPass2026*", dto.NewPassword);
+    }
 }

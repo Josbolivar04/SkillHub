@@ -79,4 +79,33 @@ public class AuthService : IAuthService
 
         return new AuthResponseDto(token, user.Email ?? string.Empty, user.FullName, roles.ToList(), expiresAt);
     }
+
+    public async Task<string> ForgotPasswordAsync(string email, CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            throw new BusinessRuleViolationException($"No account was found with email '{email}'.");
+        }
+
+        return await _userManager.GeneratePasswordResetTokenAsync(user);
+    }
+
+    public async Task ResetPasswordAsync(ResetPasswordDto request, CancellationToken cancellationToken = default)
+    {
+        var normalizedEmail = request.Email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            throw new BusinessRuleViolationException($"No account was found with email '{request.Email}'.");
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            var errors = string.Join("; ", result.Errors.Select(e => e.Description));
+            throw new BusinessRuleViolationException($"Password reset failed: {errors}");
+        }
+    }
 }

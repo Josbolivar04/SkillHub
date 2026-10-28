@@ -1,0 +1,186 @@
+@model ImportResultDto?
+@{
+    ViewData["Title"] = "Inscripción Masiva desde Excel";
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="text-decoration-none text-muted fw-semibold">
+        <i class="bi bi-arrow-left me-1"></i> Volver a Mis Talleres
+    </a>
+</div>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h1 class="h2 fw-bold text-dark mb-1">
+            <i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Inscripción Masiva desde Excel
+        </h1>
+        <p class="text-muted mb-0">Carga un archivo Excel para inscribir participantes en lote sin tener que hacerlo uno por uno</p>
+    </div>
+    <a asp-action="DownloadTemplate" class="btn btn-outline-success rounded-pill px-4">
+        <i class="bi bi-download me-1"></i> Descargar Plantilla Excel
+    </a>
+</div>
+
+@if (!ViewData.ModelState.IsValid && ViewData.ModelState[string.Empty]?.Errors.Count > 0)
+{
+    <div class="alert alert-danger rounded-4 py-3 mb-4 shadow-sm">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-exclamation-octagon-fill fs-4 me-2 text-danger"></i>
+            <div asp-validation-summary="ModelOnly" class="text-danger mb-0"></div>
+        </div>
+    </div>
+}
+
+<!-- Upload Card -->
+<div class="card card-custom p-4 p-md-5 border-0 shadow-sm mb-4">
+    <div class="row align-items-center g-4">
+        <div class="col-12 col-lg-7">
+            <h5 class="fw-bold text-dark mb-2">Formato Requerido del Archivo</h5>
+            <p class="text-muted small mb-3">
+                El archivo Excel (<code>.xlsx</code>) debe contener en su primera hoja las siguientes dos columnas en la fila 1:
+            </p>
+            <div class="table-responsive mb-3">
+                <table class="table table-bordered table-sm small align-middle text-center mb-0">
+                    <thead class="table-primary text-white">
+                        <tr>
+                            <th class="py-2">Columna A (Fila 1)</th>
+                            <th class="py-2">Columna B (Fila 1)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr class="fw-bold">
+                            <td>ParticipantEmail</td>
+                            <td>WorkshopCode</td>
+                        </tr>
+                        <tr class="text-muted">
+                            <td>participante@correo.com</td>
+                            <td>FOT-001</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <ul class="text-muted small ps-3 mb-0">
+                <li>Cada fila se procesa como una inscripción normal y valida reglas de negocio (cupos, duplicados, horarios no solapados y fechas futuras).</li>
+                <li>Si el participante o el taller no existen, esa fila específica se rechaza.</li>
+                <li><strong>Las filas válidas se guardan con éxito aunque otras fallen.</strong></li>
+            </ul>
+        </div>
+
+        <div class="col-12 col-lg-5">
+            <div class="p-4 rounded-4 bg-light border border-dashed text-center">
+                <form asp-action="ImportExcel" method="post" enctype="multipart/form-data">
+                    @Html.AntiForgeryToken()
+                    <div class="mb-3">
+                        <i class="bi bi-cloud-arrow-up text-primary" style="font-size: 3rem;"></i>
+                        <h6 class="fw-bold text-dark mt-2 mb-1">Selecciona tu archivo Excel</h6>
+                        <small class="text-muted d-block mb-3">Formatos aceptados: .xlsx</small>
+                        <input type="file" name="file" id="excelFile" class="form-control" accept=".xlsx" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 rounded-pill py-2">
+                        <i class="bi bi-play-circle-fill me-1"></i> Procesar Inscripciones
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Results Section -->
+@if (Model != null)
+{
+    var hasErrors = Model.Errors.Any();
+    var successPercent = Model.TotalRows > 0 ? (int)Math.Round((double)Model.ImportedCount / Model.TotalRows * 100) : 0;
+
+    <div class="card card-custom p-4 p-md-5 border-0 shadow-sm mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+            <div>
+                <h3 class="fw-bold mb-1 text-dark">
+                    <i class="bi bi-clipboard2-check text-primary me-2"></i>Resultado de la Importación
+                </h3>
+                <p class="text-muted small mb-0">Resumen detallado de las filas procesadas en el archivo</p>
+            </div>
+            @if (Model.ImportedCount > 0)
+            {
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill fs-6 fw-bold">
+                    <i class="bi bi-check-all me-1"></i> Filas válidas guardadas en la base de datos
+                </span>
+            }
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="card card-custom p-3 text-center h-100 bg-light border-0">
+                    <small class="text-muted text-uppercase fw-semibold">Total de Filas</small>
+                    <div class="fs-2 fw-bold text-dark">@Model.TotalRows</div>
+                    <small class="text-secondary">En el archivo procesado</small>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card card-custom p-3 text-center h-100 bg-success bg-opacity-10 border border-success border-opacity-25">
+                    <small class="text-success text-uppercase fw-semibold">Inscritas con Éxito</small>
+                    <div class="fs-2 fw-bold text-success">@Model.ImportedCount</div>
+                    <small class="text-success">@successPercent% del total</small>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card card-custom p-3 text-center h-100 @(hasErrors ? "bg-danger bg-opacity-10 border border-danger border-opacity-25" : "bg-light border-0")">
+                    <small class="@(hasErrors ? "text-danger" : "text-muted") text-uppercase fw-semibold">Filas Rechazadas</small>
+                    <div class="fs-2 fw-bold @(hasErrors ? "text-danger" : "text-muted")">@Model.RejectedCount</div>
+                    <small class="@(hasErrors ? "text-danger" : "text-secondary")">@(hasErrors ? "No cumplieron las reglas" : "Ninguna")</small>
+                </div>
+            </div>
+        </div>
+
+        @if (hasErrors)
+        {
+            <div class="alert alert-warning rounded-4 border-0 shadow-sm mb-3">
+                <i class="bi bi-info-circle-fill me-1"></i>
+                A continuación se detallan las filas que no pudieron ser inscritas y el motivo exacto del rechazo para que puedas corregirlas:
+            </div>
+
+            <div class="table-responsive rounded-4 border">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light text-secondary small text-uppercase fw-semibold">
+                        <tr>
+                            <th class="ps-4 py-3 text-center" style="width: 90px;">Fila Excel</th>
+                            <th class="py-3">Correo Participante</th>
+                            <th class="py-3 text-center">Código Taller</th>
+                            <th class="pe-4 py-3">Motivo del Rechazo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var err in Model.Errors)
+                        {
+                            <tr>
+                                <td class="ps-4 py-3 text-center">
+                                    <span class="badge bg-light text-dark border fw-bold px-2 py-1">
+                                        Fila @err.RowNumber
+                                    </span>
+                                </td>
+                                <td class="py-3 font-monospace small">
+                                    @(string.IsNullOrWhiteSpace(err.ParticipantEmail) ? "(Vacío)" : err.ParticipantEmail)
+                                </td>
+                                <td class="py-3 text-center">
+                                    <span class="badge bg-primary bg-opacity-10 text-primary fw-semibold px-2 py-1">
+                                        @(string.IsNullOrWhiteSpace(err.WorkshopCode) ? "(Vacío)" : err.WorkshopCode)
+                                    </span>
+                                </td>
+                                <td class="pe-4 py-3 text-danger small">
+                                    <i class="bi bi-x-circle-fill me-1"></i> @err.Reason
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-success rounded-4 border-0 shadow-sm mb-0 text-center py-4">
+                <i class="bi bi-check-circle-fill fs-2 d-block text-success mb-2"></i>
+                <h5 class="fw-bold mb-1">¡Todas las filas se inscribieron exitosamente!</h5>
+                <p class="text-muted small mb-0">No se presentaron errores ni rechazos durante el procesamiento.</p>
+            </div>
+        }
+    </div>
+}

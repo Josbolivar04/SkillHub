@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SkillHub.Application.DTOs.Enrollments;
+using SkillHub.Application.DTOs.Reports;
 using SkillHub.Application.DTOs.Workshops;
 using SkillHub.Application.Interfaces;
 using SkillHub.Domain.Constants;
@@ -16,11 +18,16 @@ namespace SkillHub.Web.Controllers;
 public class InstructorController : Controller
 {
     private readonly IWorkshopService _workshopService;
+    private readonly IExcelImporter _excelImporter;
     private readonly ILogger<InstructorController> _logger;
 
-    public InstructorController(IWorkshopService workshopService, ILogger<InstructorController> logger)
+    public InstructorController(
+        IWorkshopService workshopService,
+        IExcelImporter excelImporter,
+        ILogger<InstructorController> logger)
     {
         _workshopService = workshopService;
+        _excelImporter = excelImporter;
         _logger = logger;
     }
 
@@ -162,6 +169,99 @@ public class InstructorController : Controller
         var attendees = await _workshopService.GetWorkshopAttendeesAsync(id, cancellationToken);
         ViewBag.Workshop = workshop;
         return View(attendees);
+    }
+
+    /// <summary>
+    /// Displays workshops ranked by active enrollments descending for employee reporting.
+    /// </summary>
+    [HttpGet]
+    public async Task<IActionResult> Reports(CancellationToken cancellationToken)
+    {
+        var reports = await _workshopService.GetTopWorkshopsReportAsync(cancellationToken);
+        return View(reports);
+    }
+
+    /// <summary>
+    /// Displays the bulk enrollment from Excel interface.
+    /// </summary>
+    [HttpGet]
+    public IActionResult ImportExcel()
+    {
+        return View((ImportResultDto?)null);
+    }
+
+    /// <summary>
+    /// Generates and downloads a clean Excel template with ParticipantEmail and WorkshopCode columns.
+    /// </summary>
+    [HttpGet]
+    public IActionResult DownloadTemplate()
+    {
+        OfficeOpenXml.ExcelPackage.License.SetNonCommercialPersonal("SkillHub");
+        using var package = new OfficeOpenXml.ExcelPackage();
+        var ws = package.Workbook.Worksheets.Add("Enrollments");
+
+        // Headers
+        ws.Cells[1, 1].Value = "ParticipantEmail";
+        ws.Cells[1, 2].Value = "WorkshopCode";
+
+        // Styling
+        using (var range = ws.Cells[1, 1, 1, 2])
+        {
+            range.Style.Font.Bold = true;
+            range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
+            range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.FromArgb(67, 97, 238));
+            range.Style.Font.Color.SetColor(System.Drawing.Color.White);
+        }
+
+        // Example rows
+        ws.Cells[2, 1].Value = "participante1@correo.com";
+        ws.Cells[2, 2].Value = "FOT-001";
+        ws.Cells[3, 1].Value = "participante2@correo.com";
+        ws.Cells[3, 2].Value = "COC-001";
+
+        ws.Column(1).AutoFit();
+        ws.Column(2).AutoFit();
+
+        var bytes = package.GetAsByteArray();
+        return File(bytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "Plantilla_Inscripciones_SkillHub.xlsx");
+    }
+
+    /// <summary>
+    /// Processes an uploaded Excel file, performs individual enrollment rules per row, and returns results with failures.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ImportExcel(IFormFile? file, CancellationToken cancellationToken)
+    {
+        if (file == null || file.Length == 0)
+        {
+            ModelState.AddModelError(string.Empty, "Por favor selecciona un archivo Excel (.xlsx) para continuar.");
+            return View((ImportResultDto?)null);
+        }
+
+        if (!file.FileName.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError(string.Empty, "El formato del archivo debe ser Excel (.xlsx).");
+            return View((ImportResultDto?)null);
+        }
+
+        try
+        {
+            using var stream = file.OpenReadStream();
+            var result = await _excelImporter.ImportEnrollmentsFromExcelAsync(stream, cancellationToken);
+            return View(result);
+        }
+        catch (BusinessRuleViolationException ex)
+        {
+            ModelState.AddModelError(string.Empty, ex.Message);
+            return View((ImportResultDto?)null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing bulk Excel import");
+            ModelState.AddModelError(string.Empty, "Ocurrió un error inesperado al procesar el archivo Excel.");
+            return View((ImportResultDto?)null);
+        }
     }
 
     /// <summary>

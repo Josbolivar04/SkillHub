@@ -150,4 +150,86 @@ public class AccountController : Controller
             new ClaimsPrincipal(claimsIdentity),
             authProperties);
     }
+
+    [HttpGet]
+    public IActionResult ForgotPassword()
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Workshops");
+        }
+
+        return View(new ForgotPasswordViewModel());
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, $"No se encontró ninguna cuenta asociada al correo '{model.Email}'.");
+            return View(model);
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        TempData["SuccessMessage"] = "Se ha validado tu cuenta. Por favor define tu nueva contraseña.";
+        return RedirectToAction("ResetPassword", new { email = user.Email, token });
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string? email = null, string? token = null)
+    {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return RedirectToAction("Index", "Workshops");
+        }
+
+        var model = new ResetPasswordViewModel
+        {
+            Email = email ?? string.Empty,
+            Token = token ?? string.Empty
+        };
+
+        return View(model);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        var normalizedEmail = model.Email.Trim().ToLowerInvariant();
+        var user = await _userManager.FindByEmailAsync(normalizedEmail);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, "No se encontró ningún usuario con ese correo electrónico.");
+            return View(model);
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, model.Token, model.Password);
+        if (result.Succeeded)
+        {
+            TempData["SuccessMessage"] = "¡Tu contraseña ha sido cambiada exitosamente! Ya puedes iniciar sesión con tu nueva contraseña.";
+            return RedirectToAction("Login");
+        }
+
+        foreach (var error in result.Errors)
+        {
+            ModelState.AddModelError(string.Empty, error.Description);
+        }
+
+        return View(model);
+    }
 }
